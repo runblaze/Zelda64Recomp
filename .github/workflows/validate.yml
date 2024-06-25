@@ -100,7 +100,7 @@ jobs:
           name: Zelda64Recompiled-AppImage-X64-${{ matrix.type }}
           path: Zelda64Recompiled-*.AppImage
   build-linux-arm64:
-    runs-on: ${{ format('blaze/{0}', matrix.os) }}
+    runs-on: 'm2/linux-22.04-2vcpu'
     strategy:
       matrix:
         type: [ Debug, Release ]
