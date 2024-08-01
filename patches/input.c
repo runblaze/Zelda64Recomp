@@ -11,7 +11,7 @@ s16 func_80832754(Player* this, s32 arg1);
 s32 func_8082EF20(Player* this);
 
 // @recomp Patched to add gyro and mouse aiming.
-s32 func_80847190(PlayState* play, Player* this, s32 arg2) {
+RECOMP_PATCH s32 func_80847190(PlayState* play, Player* this, s32 arg2) {
     s32 pad;
     s16 var_s0;
     // @recomp Get the aiming camera inversion state.
@@ -147,7 +147,7 @@ extern Input* sPlayerControlInput;
  * - B exits, using the RESPAWN_MODE_DOWN entrance
  */
 // @recomp Patched for aiming inversion and supporting the right stick in dual analog.
-void func_8083A98C(Actor* thisx, PlayState* play2) {
+RECOMP_PATCH void func_8083A98C(Actor* thisx, PlayState* play2) {
     PlayState* play = play2;
     Player* this = (Player*)thisx;
     s32 camMode;
@@ -181,9 +181,7 @@ void func_8083A98C(Actor* thisx, PlayState* play2) {
             Message_StartTextbox(play, (play->sceneId == SCENE_AYASHIISHOP) ? 0x2A00 : 0x5E6, NULL);
         }
     } else {
-        // @recomp Manual relocation, TODO remove when automated.
-        Input* player_control_input = play->state.input;
-        *(Input**)KaleidoManager_GetRamAddr(&sPlayerControlInput) = player_control_input;
+        sPlayerControlInput = play->state.input;
         if (play->view.fovy >= 25.0f) {
             s16 prevFocusX = thisx->focus.rot.x;
             s16 prevFocusY = thisx->focus.rot.y;
@@ -193,7 +191,7 @@ void func_8083A98C(Actor* thisx, PlayState* play2) {
 
             // @recomp Add in the analog camera Y input. Clamp to prevent moving the camera twice as fast if both sticks are held.
             // Pitch:
-            inputY = CLAMP(player_control_input->rel.stick_y + analog_y, -60, 60) * 4;
+            inputY = CLAMP(sPlayerControlInput->rel.stick_y + analog_y, -60, 60) * 4;
             // @recomp Invert the Y axis accordingly (default is inverted, so negate if not inverted).
             if (!inverted_y) {
                 inputY = -inputY;
@@ -205,7 +203,7 @@ void func_8083A98C(Actor* thisx, PlayState* play2) {
 
             // @recomp Add in the analog camera X input. Clamp to prevent moving the camera twice as fast if both sticks are held.
             // Yaw: shape.rot.y is used as a fixed starting position
-            inputX = CLAMP(player_control_input->rel.stick_x + analog_x, -60, 60) * -4;
+            inputX = CLAMP(sPlayerControlInput->rel.stick_x + analog_x, -60, 60) * -4;
             // @recomp Invert the X axis accordingly.
             if (inverted_x) {
                 inputX = -inputX;
@@ -229,14 +227,14 @@ void func_8083A98C(Actor* thisx, PlayState* play2) {
 
         if (play->sceneId == SCENE_AYASHIISHOP) {
             camMode = CAM_MODE_DEKUHIDE;
-        } else if (CHECK_BTN_ALL(player_control_input->cur.button, BTN_A)) { // Zoom
+        } else if (CHECK_BTN_ALL(sPlayerControlInput->cur.button, BTN_A)) { // Zoom
             camMode = CAM_MODE_TARGET;
         } else {
             camMode = CAM_MODE_NORMAL;
         }
 
         // Exit
-        if (CHECK_BTN_ALL(player_control_input->press.button, BTN_B)) {
+        if (CHECK_BTN_ALL(sPlayerControlInput->press.button, BTN_B)) {
             Message_CloseTextbox(play);
 
             if (play->sceneId == SCENE_00KEIKOKU) {
@@ -353,20 +351,17 @@ u8* get_button_item_equip_ptr(u32 form, u32 button) {
 }
 
 // Return currently-pressed button, in order of priority D-Pad, B, CLEFT, CDOWN, CRIGHT.
-EquipSlot func_8082FDC4(void) {
+RECOMP_PATCH EquipSlot func_8082FDC4(void) {
     EquipSlot i;
-    
-    // @recomp Manually relocate, TODO remove this when the recompiler can relocate automatically.
-    Input* sPlayerControlInput_reloc = *(Input**)KaleidoManager_GetRamAddr(&sPlayerControlInput);
 
     for (int extra_slot_index = 0; extra_slot_index < ARRAY_COUNT(buttons_to_extra_slot); extra_slot_index++) {
-        if (CHECK_BTN_ALL(sPlayerControlInput_reloc->press.button, buttons_to_extra_slot[extra_slot_index].button)) {
+        if (CHECK_BTN_ALL(sPlayerControlInput->press.button, buttons_to_extra_slot[extra_slot_index].button)) {
             return (EquipSlot)buttons_to_extra_slot[extra_slot_index].slot;
         }
     }
 
     for (i = 0; i < ARRAY_COUNT(sPlayerItemButtons); i++) {
-        if (CHECK_BTN_ALL(sPlayerControlInput_reloc->press.button, sPlayerItemButtons[i])) {
+        if (CHECK_BTN_ALL(sPlayerControlInput->press.button, sPlayerItemButtons[i])) {
             break;
         }
     }
@@ -374,7 +369,7 @@ EquipSlot func_8082FDC4(void) {
     return i;
 }
 
-ItemId Player_GetItemOnButton(PlayState* play, Player* player, EquipSlot slot) {
+RECOMP_PATCH ItemId Player_GetItemOnButton(PlayState* play, Player* player, EquipSlot slot) {
     if (slot >= EQUIP_SLOT_A) {
         return ITEM_NONE;
     }
@@ -449,13 +444,12 @@ bool func_808323C0(Player *this, s16 csId);
 void func_80855218(PlayState *play, Player *this, struct_8085D910 **arg2);
 void func_808550D0(PlayState *play, Player *this, f32 arg2, f32 arg3, s32 arg4);
 
-void Player_Action_86(Player *this, PlayState *play) {
+RECOMP_PATCH void Player_Action_86(Player *this, PlayState *play) {
     struct_8085D910 *sp4C = D_8085D910;
     s32 sp48 = false;
 
     func_808323C0(this, play->playerCsIds[PLAYER_CS_ID_MASK_TRANSFORMATION]);
-    // @recomp Manual relocation, TODO remove when automated.
-    *(Input**)KaleidoManager_GetRamAddr(&sPlayerControlInput) = play->state.input;
+    sPlayerControlInput = play->state.input;
 
     Camera_ChangeMode(GET_ACTIVE_CAM(play),
         (this->transformation == PLAYER_FORM_HUMAN) ? CAM_MODE_NORMAL : CAM_MODE_JUMP);
@@ -546,7 +540,7 @@ extern void* gWorkBuffer;
 u16 func_801A5100(void);
 
 // @recomp Patched to update status of extra buttons via set_extra_item_slot_status.
-void Interface_UpdateButtonsPart1(PlayState* play) {
+RECOMP_PATCH void Interface_UpdateButtonsPart1(PlayState* play) {
     InterfaceContext* interfaceCtx = &play->interfaceCtx;
     Player* player = GET_PLAYER(play);
     s32 pad;
@@ -813,7 +807,7 @@ void Interface_UpdateButtonsPart1(PlayState* play) {
  * Also used directly when opening the pause menu i.e. skips part 1
  */
 // @recomp Patched in the same way as Interface_UpdateButtonsPart1
-void Interface_UpdateButtonsPart2(PlayState* play) {
+RECOMP_PATCH void Interface_UpdateButtonsPart2(PlayState* play) {
     MessageContext* msgCtx = &play->msgCtx;
     InterfaceContext* interfaceCtx = &play->interfaceCtx;
     Player* player = GET_PLAYER(play);
@@ -1306,7 +1300,7 @@ void Interface_UpdateButtonsPart2(PlayState* play) {
  * Sets the button alphas to be dimmed for disabled buttons, or to the requested alpha for non-disabled buttons
  */
 // @recomp Patched to also set extra slot alpha values.
-void Interface_UpdateButtonAlphasByStatus(PlayState* play, s16 risingAlpha) {
+RECOMP_PATCH void Interface_UpdateButtonAlphasByStatus(PlayState* play, s16 risingAlpha) {
     InterfaceContext* interfaceCtx = &play->interfaceCtx;
 
     if ((gSaveContext.buttonStatus[EQUIP_SLOT_B] == BTN_DISABLED) || (gSaveContext.bButtonStatus == BTN_DISABLED)) {
@@ -1379,7 +1373,7 @@ void Interface_UpdateButtonAlphasByStatus(PlayState* play, s16 risingAlpha) {
  * depending on button status
  */
 // @recomp Patched to also set extra slot alpha values.
-void Interface_UpdateButtonAlphas(PlayState* play, s16 dimmingAlpha, s16 risingAlpha) {
+RECOMP_PATCH void Interface_UpdateButtonAlphas(PlayState* play, s16 dimmingAlpha, s16 risingAlpha) {
     InterfaceContext* interfaceCtx = &play->interfaceCtx;
 
     if (gSaveContext.hudVisibilityForceButtonAlphasByStatus) {
@@ -1416,7 +1410,7 @@ void Interface_UpdateButtonAlphas(PlayState* play, s16 dimmingAlpha, s16 risingA
 }
 
 // @recomp Patched to also set extra slot alpha values.
-void Interface_UpdateHudAlphas(PlayState* play, s16 dimmingAlpha) {
+RECOMP_PATCH void Interface_UpdateHudAlphas(PlayState* play, s16 dimmingAlpha) {
     InterfaceContext* interfaceCtx = &play->interfaceCtx;
     s16 risingAlpha = 255 - dimmingAlpha;
 
@@ -2342,7 +2336,7 @@ extern s8 sOcarinaInstrumentId;
 extern f32 AudioOcarina_BendPitchTwoSemitones(s8 bendIndex);
 
 // @recomp Patch the function in order to read DPad inputs for the ocarina as well as CButton inputs. 
-void AudioOcarina_PlayControllerInput(u8 isOcarinaSfxSuppressedWhenCancelled) {
+RECOMP_PATCH void AudioOcarina_PlayControllerInput(u8 isOcarinaSfxSuppressedWhenCancelled) {
     u32 ocarinaBtnsHeld;
 
     // Prevents two different ocarina notes from being played on two consecutive frames
@@ -2459,7 +2453,7 @@ extern void AudioOcarina_CheckIfStartedSong(void);
 extern void AudioOcarina_UpdateCurOcarinaSong(void);
 
 // @recomp Patch the L button check (for free ocarina playing) to account for DPad ocarina.
-void AudioOcarina_CheckSongsWithoutMusicStaff(void) {
+RECOMP_PATCH void AudioOcarina_CheckSongsWithoutMusicStaff(void) {
     u32 pitch;
     u8 ocarinaStaffPlayingPosStart;
     u8 songIndex;
@@ -2534,7 +2528,7 @@ extern bool get_analog_cam_active();
 extern void skip_analog_cam_once();
 
 // @recomp Updates yaw while inside of deku flower.
-void func_80855F9C(PlayState* play, Player* this) {
+RECOMP_PATCH void func_80855F9C(PlayState* play, Player* this) {
     f32 speedTarget;
     s16 yawTarget;
 
@@ -2559,7 +2553,7 @@ extern void Player_Action_4(Player* this, PlayState* play);
 extern s32 Player_SetAction(PlayState* play, Player* this, PlayerActionFunc actionFunc, s32 arg3);
 extern LinkAnimationHeader gPlayerAnim_pg_maru_change;
 
-s32 func_80857950(PlayState* play, Player* this) {
+RECOMP_PATCH s32 func_80857950(PlayState* play, Player* this) {
     // @recomp track if newly going from non-spike roll to spike roll (spike rolling when this->unk_B86[1] == 1)
     static bool wasOff = true;
     bool isOff = this->unk_B86[1] == 0;
@@ -2569,16 +2563,9 @@ s32 func_80857950(PlayState* play, Player* this) {
     }
     wasOff = isOff;
 
-    // @recomp Manual relocation, TODO remove when automated.
-    Input* player_control_input = *(Input**)KaleidoManager_GetRamAddr(&sPlayerControlInput);
-
-    if (((this->unk_B86[1] == 0) && !CHECK_BTN_ALL(player_control_input->cur.button, BTN_A)) ||
+    if (((this->unk_B86[1] == 0) && !CHECK_BTN_ALL(sPlayerControlInput->cur.button, BTN_A)) ||
         ((this->av1.actionVar1 == 3) && (this->actor.velocity.y < 0.0f))) {
-
-        // @recomp Manual relocation, TODO remove when automated.
-        PlayerActionFunc Player_Action_4_reloc = KaleidoManager_GetRamAddr(Player_Action_4);
-        Player_SetAction(play, this, Player_Action_4_reloc, 1);
-
+        Player_SetAction(play, this, Player_Action_4, 1);
         Math_Vec3f_Copy(&this->actor.world.pos, &this->actor.prevPos);
         PlayerAnimation_Change(play, &this->skelAnime, &gPlayerAnim_pg_maru_change, -2.0f / 3.0f, 7.0f, 0.0f,
                                ANIMMODE_ONCE, 0.0f);
@@ -2610,10 +2597,7 @@ extern void func_8082DC38(Player* this);
 extern void func_80836A5C(Player* this, PlayState* play);
 
 // @recomp Patch the shielding function to respect the aiming axis inversion setting.
-void Player_Action_18(Player* this, PlayState* play) {
-    //@recomp Manual relocation. TODO remove when automated
-    D_8085BE84_t* D_8085BE84_reloc = (D_8085BE84_t*)KaleidoManager_GetRamAddr(D_8085BE84);
-    Input* sPlayerControlInput_reloc = *(Input**)KaleidoManager_GetRamAddr(&sPlayerControlInput);
+RECOMP_PATCH void Player_Action_18(Player* this, PlayState* play) {
     func_80832F24(this);
 
     if (this->transformation == PLAYER_FORM_GORON) {
@@ -2627,7 +2611,7 @@ void Player_Action_18(Player* this, PlayState* play) {
                     func_80123C58(this);
                 }
 
-                func_80836A98(this, D_8085BE84_reloc[PLAYER_ANIMGROUP_defense_end][this->modelAnimType], play);
+                func_80836A98(this, D_8085BE84[PLAYER_ANIMGROUP_defense_end][this->modelAnimType], play);
                 func_80830B38(this);
             } else {
                 this->stateFlags1 |= PLAYER_STATE1_400000;
@@ -2639,7 +2623,7 @@ void Player_Action_18(Player* this, PlayState* play) {
 
     if (PlayerAnimation_Update(play, &this->skelAnime)) {
         if (!Player_IsGoronOrDeku(this)) {
-            Player_AnimationPlayLoop(play, this, D_8085BE84_reloc[PLAYER_ANIMGROUP_defense_wait][this->modelAnimType]);
+            Player_AnimationPlayLoop(play, this, D_8085BE84[PLAYER_ANIMGROUP_defense_wait][this->modelAnimType]);
         }
 
         this->av2.actionVar2 = 1;
@@ -2656,8 +2640,8 @@ void Player_Action_18(Player* this, PlayState* play) {
     }
 
     if (this->av2.actionVar2 != 0) {
-        f32 yStick = sPlayerControlInput_reloc->rel.stick_y * 180;
-        f32 xStick = sPlayerControlInput_reloc->rel.stick_x * -120;
+        f32 yStick = sPlayerControlInput->rel.stick_y * 180;
+        f32 xStick = sPlayerControlInput->rel.stick_x * -120;
         s16 temp_a0 = this->actor.shape.rot.y - Camera_GetInputDirYaw(GET_ACTIVE_CAM(play));
         s16 var_a1;
         s16 temp_ft5;
@@ -2717,7 +2701,7 @@ void Player_Action_18(Player* this, PlayState* play) {
                         func_80123C58(this);
                     }
 
-                    func_80836A98(this, D_8085BE84_reloc[PLAYER_ANIMGROUP_defense_end][this->modelAnimType], play);
+                    func_80836A98(this, D_8085BE84[PLAYER_ANIMGROUP_defense_end][this->modelAnimType], play);
                 }
 
                 Player_PlaySfx(this, NA_SE_IT_SHIELD_REMOVE);

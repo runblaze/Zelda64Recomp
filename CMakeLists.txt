@@ -6,7 +6,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 # set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-everything -Wall -Wextra")
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-everything /W4")
+endif()
+
+# Opt out of constexpr mutex constructor on windows to prevent vcredist issues
+if (WIN32)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR")
+endif()
 
 # Avoid warning about DOWNLOAD_EXTRACT_TIMESTAMP in CMake 3.24:
 if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
@@ -29,6 +36,7 @@ SET(LUNASVG_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(${CMAKE_SOURCE_DIR}/lib/lunasvg)
 # set(BUILD_SHARED_LIBS "${BUILD_SHARED_LIBS_SAVED}")
 SET(ENABLE_SVG_PLUGIN ON CACHE BOOL "" FORCE)
+SET(RMLUI_TESTS_ENABLED OFF CACHE BOOL "" FORCE)
 add_subdirectory(${CMAKE_SOURCE_DIR}/lib/RmlUi)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime)
@@ -95,7 +103,7 @@ endif()
 add_custom_target(PatchesBin
     COMMAND ${CMAKE_COMMAND} -E env CC=${PATCHES_C_COMPILER} LD=${PATCHES_LD} OBJCOPY=${PATCHES_OBJCOPY} make
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/patches
-    BYPRODUCTS ${CMAKE_SOURCE_DIR}/patches/patches.bin
+    BYPRODUCTS ${CMAKE_SOURCE_DIR}/patches/patches.elf
 )
 
 # Generate patches_bin.c from patches.bin
@@ -104,15 +112,16 @@ add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/RecompiledPatches/patches_bin.c
     DEPENDS ${CMAKE_SOURCE_DIR}/patches/patches.bin
 )
 
-# Recompile patches elf into patches.c
+# Recompile patches elf into patches.c and patches.bin
 add_custom_command(OUTPUT
+                       ${CMAKE_SOURCE_DIR}/patches/patches.bin
                        ${CMAKE_SOURCE_DIR}/RecompiledPatches/patches.c
                        ${CMAKE_SOURCE_DIR}/RecompiledPatches/recomp_overlays.inl
                        ${CMAKE_SOURCE_DIR}/RecompiledPatches/funcs.h
                    # TODO: Look into why modifying patches requires two builds to take
                    COMMAND ./N64Recomp patches.toml
                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-                   DEPENDS ${CMAKE_SOURCE_DIR}/patches/patches.bin
+                   DEPENDS ${CMAKE_SOURCE_DIR}/patches/patches.elf
 )
 
 # Download controller db file for controller support via SDL2

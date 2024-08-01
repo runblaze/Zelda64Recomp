@@ -1010,14 +1010,12 @@ void set_all_vertex_flags() {
 
 // Patches the given DL to replace a vertex command at the given position with a branch to the new DL.
 void patch_ocarina_effect(Actor* actor, Gfx* original_dl, u32 dl_offset, Gfx* override_dl) {
-    Gfx* reloc_dl = (Gfx*)actor_relocate(actor, original_dl);
-
     set_all_vertex_flags();
 
     // Check if the DL hasn't been patched yet.
-    if (reloc_dl[dl_offset].words.w0 >> 24 == G_VTX) {
+    if (original_dl[dl_offset].words.w0 >> 24 == G_VTX) {
         // Redirect the DL away from the original vertex command and to the override DL.
-        gSPBranchList(&reloc_dl[dl_offset], override_dl);
+        gSPBranchList(&original_dl[dl_offset], override_dl);
     }
 }
 
@@ -1032,7 +1030,7 @@ void set_ocarina_vertex_alphas(Vtx* verts, s32 count, u8 alpha) {
 
 extern Gfx sSongOfTimeFrustumMaterialDL[];
 
-void OceffWipe_Draw(Actor* thisx, PlayState* play) {
+RECOMP_PATCH void OceffWipe_Draw(Actor* thisx, PlayState* play) {
     u32 scroll = play->state.frames & 0xFF;
     OceffWipe* this = (OceffWipe*)thisx;
     f32 z;
@@ -1089,8 +1087,7 @@ void OceffWipe_Draw(Actor* thisx, PlayState* play) {
         gDPSetEnvColor(POLY_XLU_DISP++, 100, 0, 255, 128);
     }
 
-    // @recomp Manual relocation, TODO remove when automated.
-    gSPDisplayList(POLY_XLU_DISP++, (Gfx*)actor_relocate(thisx, &sSongOfTimeFrustumMaterialDL));
+    gSPDisplayList(POLY_XLU_DISP++, sSongOfTimeFrustumMaterialDL);
     gSPDisplayList(POLY_XLU_DISP++, Gfx_TwoTexScroll(play->state.gfxCtx, G_TX_RENDERTILE, 0 - scroll, scroll * -2, 32,
                                                      32, 1, 0 - scroll, scroll * -2, 32, 32));
     // @recomp Use the new DL instead of the original.
@@ -1101,7 +1098,7 @@ void OceffWipe_Draw(Actor* thisx, PlayState* play) {
 
 extern Gfx sEponaSongFrustumMaterialDL[];
 
-void OceffWipe2_Draw(Actor* thisx, PlayState* play) {
+RECOMP_PATCH void OceffWipe2_Draw(Actor* thisx, PlayState* play) {
     u32 scroll = play->state.frames & 0xFF;
     OceffWipe2* this = (OceffWipe2*)thisx;
     f32 z;
@@ -1144,8 +1141,7 @@ void OceffWipe2_Draw(Actor* thisx, PlayState* play) {
     gSPMatrix(POLY_XLU_DISP++, Matrix_NewMtx(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
     gDPSetPrimColor(POLY_XLU_DISP++, 0, 0, 255, 255, 170, 255);
     gDPSetEnvColor(POLY_XLU_DISP++, 255, 100, 0, 128);
-    // @recomp Manual relocation, TODO remove when automated.
-    gSPDisplayList(POLY_XLU_DISP++, (Gfx*)actor_relocate(thisx, sEponaSongFrustumMaterialDL));
+    gSPDisplayList(POLY_XLU_DISP++, sEponaSongFrustumMaterialDL);
     gSPDisplayList(POLY_XLU_DISP++, Gfx_TwoTexScroll(play->state.gfxCtx, G_TX_RENDERTILE, scroll * 6, scroll * -6, 64,
                                                      64, 1, scroll * -6, 0, 64, 64));
     // @recomp Use the new DL instead of the original.
@@ -1156,7 +1152,7 @@ void OceffWipe2_Draw(Actor* thisx, PlayState* play) {
 
 extern Gfx sSariaSongFrustrumMaterialDL[];
 
-void OceffWipe3_Draw(Actor* thisx, PlayState* play) {
+RECOMP_PATCH void OceffWipe3_Draw(Actor* thisx, PlayState* play) {
     u32 scroll = play->state.frames & 0xFFF;
     OceffWipe3* this = (OceffWipe3*)thisx;
     f32 z;
@@ -1198,8 +1194,7 @@ void OceffWipe3_Draw(Actor* thisx, PlayState* play) {
     gSPMatrix(POLY_XLU_DISP++, Matrix_NewMtx(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
     gDPSetPrimColor(POLY_XLU_DISP++, 0, 0, 255, 255, 170, 255);
     gDPSetEnvColor(POLY_XLU_DISP++, 100, 200, 0, 128);
-    // @recomp Manual relocation, TODO remove when automated.
-    gSPDisplayList(POLY_XLU_DISP++, (Gfx*)actor_relocate(thisx, &sSariaSongFrustrumMaterialDL));
+    gSPDisplayList(POLY_XLU_DISP++, sSariaSongFrustrumMaterialDL);
     gSPDisplayList(POLY_XLU_DISP++, Gfx_TwoTexScroll(play->state.gfxCtx, 0, scroll * 12, scroll * -12, 64, 64, 1,
                                                      scroll * 8, scroll * -8, 64, 64));
     // @recomp Use the new DL instead of the original.
@@ -1212,7 +1207,7 @@ extern Gfx sScarecrowSongUnusedMaterialDL[];
 extern Gfx sScarecrowSongMaterialDL[];
 extern Gfx sScarecrowSongModelDL[];
 
-void OceffWipe4_Draw(Actor* thisx, PlayState* play) {
+RECOMP_PATCH void OceffWipe4_Draw(Actor* thisx, PlayState* play) {
     u32 scroll = play->state.frames & 0xFFF;
     OceffWipe4* this = (OceffWipe4*)thisx;
     f32 z;
@@ -1253,17 +1248,16 @@ void OceffWipe4_Draw(Actor* thisx, PlayState* play) {
 
     gSPMatrix(POLY_XLU_DISP++, Matrix_NewMtx(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
 
-    // @recomp Manual relocations, TODO remove when automated.
     if (this->actor.params == OCEFF_WIPE4_UNUSED) {
-        gSPDisplayList(POLY_XLU_DISP++, (Gfx*)actor_relocate(thisx, sScarecrowSongUnusedMaterialDL));
+        gSPDisplayList(POLY_XLU_DISP++, sScarecrowSongUnusedMaterialDL);
     } else {
-        gSPDisplayList(POLY_XLU_DISP++, (Gfx*)actor_relocate(thisx, sScarecrowSongMaterialDL));
+        gSPDisplayList(POLY_XLU_DISP++, sScarecrowSongMaterialDL);
     }
 
-    gSPDisplayList(POLY_XLU_DISP++, (Gfx*)actor_relocate(thisx, sScarecrowSongModelDL));
+    gSPDisplayList(POLY_XLU_DISP++, sScarecrowSongModelDL);
     gSPDisplayList(POLY_XLU_DISP++, Gfx_TwoTexScroll(play->state.gfxCtx, G_TX_RENDERTILE, scroll * 2, scroll * -2, 32,
                                                      64, 1, scroll * -1, scroll, 32, 32));
-    gSPDisplayList(POLY_XLU_DISP++, (Gfx*)actor_relocate(thisx, &sScarecrowSongModelDL[11]));
+    gSPDisplayList(POLY_XLU_DISP++, &sScarecrowSongModelDL[11]);
 
     CLOSE_DISPS(play->state.gfxCtx);
 }
@@ -1279,7 +1273,7 @@ static u8 sEnvColors[] = {
 extern Gfx gOceff5DL[];
 extern AnimatedMaterial gOceff5TexAnim[];
 
-void OceffWipe5_Draw(Actor* thisx, PlayState* play) {
+RECOMP_PATCH void OceffWipe5_Draw(Actor* thisx, PlayState* play) {
     OceffWipe5* this = (OceffWipe5*)thisx;
     f32 z;
     s32 pad;
@@ -1339,9 +1333,8 @@ void OceffWipe5_Draw(Actor* thisx, PlayState* play) {
     gDPSetEnvColor(POLY_XLU_DISP++, sEnvColors[colorIndex], sEnvColors[colorIndex + 1], sEnvColors[colorIndex + 2],
                    255);
 
-    // @recomp Manual relocations, TODO remove when automated.
-    AnimatedMat_Draw(play, (AnimatedMaterial*)actor_relocate(thisx, gOceff5TexAnim));
-    gSPDisplayList(POLY_XLU_DISP++, (Gfx*)actor_relocate(thisx, gOceff5DL));
+    AnimatedMat_Draw(play, gOceff5TexAnim);
+    gSPDisplayList(POLY_XLU_DISP++, gOceff5DL);
 
     CLOSE_DISPS(play->state.gfxCtx);
 }
@@ -1349,7 +1342,7 @@ void OceffWipe5_Draw(Actor* thisx, PlayState* play) {
 extern Gfx gOceff6DL[];
 extern AnimatedMaterial ovl_Oceff_Wipe6_Matanimheader_000338[];
 
-void OceffWipe6_Draw(Actor* thisx, PlayState* play) {
+RECOMP_PATCH void OceffWipe6_Draw(Actor* thisx, PlayState* play) {
     OceffWipe6* this = (OceffWipe6*)thisx;
     f32 z;
     u8 alpha;
@@ -1392,9 +1385,8 @@ void OceffWipe6_Draw(Actor* thisx, PlayState* play) {
     Matrix_RotateXS(0x708, MTXMODE_APPLY);
     Matrix_Translate(0.0f, 0.0f, -z, MTXMODE_APPLY);
     gSPMatrix(POLY_XLU_DISP++, Matrix_NewMtx(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
-    // @recomp Manual relocations, TODO remove these when automatic.
-    AnimatedMat_Draw(play, (AnimatedMaterial*)actor_relocate(thisx, ovl_Oceff_Wipe6_Matanimheader_000338));
-    gSPDisplayList(POLY_XLU_DISP++, (Gfx*)actor_relocate(thisx, gOceff6DL));
+    AnimatedMat_Draw(play, ovl_Oceff_Wipe6_Matanimheader_000338);
+    gSPDisplayList(POLY_XLU_DISP++, gOceff6DL);
 
     CLOSE_DISPS(play->state.gfxCtx);
 }
@@ -1402,7 +1394,7 @@ void OceffWipe6_Draw(Actor* thisx, PlayState* play) {
 extern Gfx sSongOfHealingEffectFrustumDL[];
 extern AnimatedMaterial sSongofHealingEffectTexAnim[];
 
-void OceffWipe7_Draw(Actor* thisx, PlayState* play) {
+RECOMP_PATCH void OceffWipe7_Draw(Actor* thisx, PlayState* play) {
     OceffWipe7* this = (OceffWipe7*)thisx;
     f32 z;
     u8 alpha;
@@ -1443,9 +1435,8 @@ void OceffWipe7_Draw(Actor* thisx, PlayState* play) {
     Matrix_RotateXS(0x708, MTXMODE_APPLY);
     Matrix_Translate(0.0f, 0.0f, -z, MTXMODE_APPLY);
     gSPMatrix(POLY_XLU_DISP++, Matrix_NewMtx(play->state.gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
-    // @recomp Manual relocations, TODO remove when automated.
-    AnimatedMat_Draw(play, (AnimatedMaterial*)actor_relocate(thisx, sSongofHealingEffectTexAnim));
-    gSPDisplayList(POLY_XLU_DISP++, (Gfx*)actor_relocate(thisx, &sSongOfHealingEffectFrustumDL));
+    AnimatedMat_Draw(play, sSongofHealingEffectTexAnim);
+    gSPDisplayList(POLY_XLU_DISP++, sSongOfHealingEffectFrustumDL);
 
     CLOSE_DISPS(play->state.gfxCtx);
 }
@@ -1454,7 +1445,7 @@ extern AnimatedMaterial object_stk2_Matanimheader_009F60[];
 
 // @recomp Patch the Skull Kid curse effect as well, which works similarly to the ocarina effects.
 // In this case, the patch also includes effect transform tagging patches.
-void EffStk_Draw(Actor* thisx, PlayState* play) {
+RECOMP_PATCH void EffStk_Draw(Actor* thisx, PlayState* play) {
     EffStk* this = (EffStk*)thisx;
     s32 pad;
     Camera* activeCam = GET_ACTIVE_CAM(play);
