@@ -22,7 +22,12 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build-linux:
-    runs-on: ${{ format('blaze/compute/{0}-amd64', matrix.os) }}
+    runs-on: >-
+      ${{
+        matrix.variant == 'compute' && format('blaze/compute/{0}-amd64', matrix.os) ||
+        matrix.variant == 'normal' && format('blaze/{0}-amd64', matrix.os) ||
+        matrix.variant == 'github' && matrix.os
+      }}
     container:
       image: dcvz/n64recomp:ubuntu-18.04
       volumes:
@@ -32,9 +37,10 @@ jobs:
         - /nodeoverride:/__e/node20:ro,rshared
     strategy:
       matrix:
-        type: [ Debug, Release ]
+        variant: [ compute, normal, github ]
+        type: [ Debug ]
         os: [ ubuntu-22.04 ]
-    name: ubuntu-18.04 (x64, ${{ matrix.type }})
+    name: ubuntu-18.04 (x64, ${{ matrix.type }}, ${{ matrix.variant }})
     steps:
       - name: Copy the Node20 binary
         run: |
@@ -47,7 +53,7 @@ jobs:
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2
         with:
-          key: ${{ matrix.os }}-z64re-ccache-${{ matrix.type }}-x64-${{ inputs.N64RECOMP_COMMIT }}-xyza
+          key: ${{ matrix.os }}-z64re-ccache-${{ matrix.type }}-x64-${{ inputs.N64RECOMP_COMMIT }}-xyzab
       - name: Prepare Build
         run: |-
           git clone ${{ secrets.ZRE_REPO_WITH_PAT }}
@@ -108,12 +114,17 @@ jobs:
           name: Zelda64Recompiled-AppImage-X64-${{ matrix.type }}
           path: Zelda64Recompiled-*.AppImage
   build-linux-arm64:
-    runs-on: ${{ format('blaze/compute/{0}', matrix.os) }}
+    runs-on: >-
+      ${{
+        matrix.variant == 'compute' && format('blaze/compute/{0}', matrix.os) ||
+        matrix.variant == 'normal' && format('blaze/{0}', matrix.os)
+      }}
     strategy:
       matrix:
-        type: [ Debug, Release ]
+        variant: [ compute, normal ]
+        type: [ Debug ]
         os: [ ubuntu-22.04 ]
-    name: ${{ matrix.os }} (arm64, ${{ matrix.type }})
+    name: ${{ matrix.os }} (arm64, ${{ matrix.type }}, ${{ matrix.variant }})
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -123,7 +134,7 @@ jobs:
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2
         with:
-          key: ${{ matrix.os }}-z64re-ccache-${{ matrix.type }}-arm64-${{ inputs.N64RECOMP_COMMIT }}-xyza
+          key: ${{ matrix.os }}-z64re-ccache-${{ matrix.type }}-arm64-${{ inputs.N64RECOMP_COMMIT }}-xyzab
       - name: Install Linux Dependencies
         run: |
           sudo apt-get update
