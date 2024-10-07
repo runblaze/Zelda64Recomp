@@ -53,7 +53,9 @@ jobs:
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2
         with:
-          key: ${{ matrix.os }}-z64re-ccache-${{ matrix.type }}-x64-${{ inputs.N64RECOMP_COMMIT }}-xyzab
+          key: ${{ matrix.os }}-z64re-ccache-${{ matrix.type }}-x64-${{ inputs.N64RECOMP_COMMIT }}
+      - name: Disable ccache
+        run: echo "CCACHE_DISABLE=1" >> $GITHUB_ENV
       - name: Prepare Build
         run: |-
           git clone ${{ secrets.ZRE_REPO_WITH_PAT }}
@@ -134,7 +136,9 @@ jobs:
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2
         with:
-          key: ${{ matrix.os }}-z64re-ccache-${{ matrix.type }}-arm64-${{ inputs.N64RECOMP_COMMIT }}-xyzab
+          key: ${{ matrix.os }}-z64re-ccache-${{ matrix.type }}-arm64-${{ inputs.N64RECOMP_COMMIT }}
+      - name: Disable ccache
+        run: echo "CCACHE_DISABLE=1" >> $GITHUB_ENV
       - name: Install Linux Dependencies
         run: |
           sudo apt-get update
@@ -222,6 +226,8 @@ jobs:
         uses: hendrikmuhs/ccache-action@v1.2
         with:
           key: ${{ runner.os }}-z64re-ccache-${{ matrix.type }}-xyza
+      - name: Disable ccache
+        run: echo "CCACHE_DISABLE=1" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Install Windows Dependencies
         run: |
           choco install ninja
