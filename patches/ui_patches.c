@@ -22,7 +22,7 @@ typedef struct {
 BiggerGfxPool gBiggerGfxPools[2];
 
 // @recomp Use the bigger gfx pools and enable RT64 extended GBI mode.
-void Graph_SetNextGfxPool(GraphicsContext* gfxCtx) {
+RECOMP_PATCH void Graph_SetNextGfxPool(GraphicsContext* gfxCtx) {
     GfxPool* pool = &gGfxPools[gfxCtx->gfxPoolIdx % 2];
     BiggerGfxPool* bigger_pool = &gBiggerGfxPools[gfxCtx->gfxPoolIdx % 2];
 
@@ -56,9 +56,10 @@ void Graph_SetNextGfxPool(GraphicsContext* gfxCtx) {
     gSPEndDisplayList(&gGfxMasterDL->disps[4]);
     gSPBranchList(&gGfxMasterDL->debugDisp[0], bigger_pool->debugBuffer);
 
-    // @recomp Enable RT64 extended GBI mode and set the current framerate
+    // @recomp Enable RT64 extended GBI mode and extended rdram.
     OPEN_DISPS(gfxCtx);
     gEXEnable(POLY_OPA_DISP++);
+    gEXSetRDRAMExtended(POLY_OPA_DISP++, 1);
     CLOSE_DISPS(gfxCtx);
 }
 
@@ -85,7 +86,7 @@ extern int extra_vis;
  *  Run the game state logic, then finalize the gfx buffer
  *  and run the graphics task for this frame.
  */
-void Graph_ExecuteAndDraw(GraphicsContext* gfxCtx, GameState* gameState) {
+RECOMP_PATCH void Graph_ExecuteAndDraw(GraphicsContext* gfxCtx, GameState* gameState) {
     u32 problem;
 
     gameState->unk_A3 = 0;
@@ -238,7 +239,7 @@ void Interface_SetOrthoView(InterfaceContext* interfaceCtx);
 void Interface_SetVertices(PlayState* play);
 void Magic_DrawMeter(PlayState* play);
 
-void Interface_Draw(PlayState* play) {
+RECOMP_PATCH void Interface_Draw(PlayState* play) {
     s32 pad;
     InterfaceContext* interfaceCtx = &play->interfaceCtx;
     Player* player = GET_PLAYER(play);
@@ -540,10 +541,10 @@ void Interface_Draw(PlayState* play) {
             extern s16 sMaskEquipAnimTimer;
             extern s16 sEquipState;
             extern s16 sMaskEquipState;
-            s16 equip_timer =      *(s16*)KaleidoManager_GetRamAddr(&sEquipAnimTimer);
-            s16 mask_equip_timer = *(s16*)KaleidoManager_GetRamAddr(&sMaskEquipAnimTimer);
-            s16 equip_state =      *(s16*)KaleidoManager_GetRamAddr(&sEquipState);
-            s16 mask_equip_state = *(s16*)KaleidoManager_GetRamAddr(&sMaskEquipState);
+            s16 equip_timer =      sEquipAnimTimer;
+            s16 mask_equip_timer = sMaskEquipAnimTimer;
+            s16 equip_state =      sEquipState;
+            s16 mask_equip_state = sMaskEquipState;
 
             s16 timer = MIN(equip_timer, mask_equip_timer);
             s32 max_timer = 10;
@@ -756,7 +757,7 @@ extern u64 gArcheryScoreIconTex[];
 extern u16 sMinigameScoreDigits[];
 
 // @recomp Patched to draw the carrot icons with an extended gbi texrect so they don't inherit the current origin.
-void Interface_DrawMinigameIcons(PlayState* play) {
+RECOMP_PATCH void Interface_DrawMinigameIcons(PlayState* play) {
     InterfaceContext* interfaceCtx = &play->interfaceCtx;
     s16 i;
     s16 numDigitsDrawn;
@@ -881,7 +882,7 @@ extern s16 sTextboxTexHeight;
 extern u64 gOcarinaTrebleClefTex[];
 
 // @recomp Patch textboxes to use ortho tris with a matrix so they can be interpolated.
-void Message_DrawTextBox(PlayState* play, Gfx** gfxP) {
+RECOMP_PATCH void Message_DrawTextBox(PlayState* play, Gfx** gfxP) {
     MessageContext* msgCtx = &play->msgCtx;
     Gfx* gfx = *gfxP;
 
@@ -1018,7 +1019,7 @@ void View_SetScissor(Gfx** gfx, s32 ulx, s32 uly, s32 lrx, s32 lry);
 
 // @recomp Patched to not actually letterbox the scissor. The letterbox effect will be achieved by drawing an overlay on top instead, which
 // will get interpolated unlike a scissor.
-void View_ApplyLetterbox(View* view) {
+RECOMP_PATCH void View_ApplyLetterbox(View* view) {
     s32 letterboxY;
     s32 letterboxX;
     s32 pad1;
@@ -1085,7 +1086,7 @@ typedef struct {
 extern ShrinkWindow* sShrinkWindowPtr;
 
 // @recomp Replace the rects used to letterbox with ortho tris so they can be interpolated.
-void ShrinkWindow_Draw(GraphicsContext* gfxCtx) {
+RECOMP_PATCH void ShrinkWindow_Draw(GraphicsContext* gfxCtx) {
     Gfx* gfx;
     s8 letterboxSize = sShrinkWindowPtr->letterboxSize;
     s8 pillarboxSize = sShrinkWindowPtr->pillarboxSize;
@@ -1189,7 +1190,7 @@ extern u64 gSceneTitleCardGradientTex[];
 
 // @recomp Patch the scene title card (the one with purple background when entering a new scene) 
 // to not glitch out on the right edge, which is hidden by overscan on N64.
-void Message_DrawSceneTitleCard(PlayState* play, Gfx** gfxP) {
+RECOMP_PATCH void Message_DrawSceneTitleCard(PlayState* play, Gfx** gfxP) {
     MessageContext* msgCtx = &play->msgCtx;
     Gfx* gfx;
 

@@ -9,7 +9,7 @@ on:
       N64RECOMP_COMMIT:
         type: string
         required: false
-        default: '2a2df89349ff25a3afb3a09617deb3a166efe2f3'
+        default: 'd33d38161798167929b114c2b0fd445f9670e10a'
       DXC_CHECKSUM:
         type: string
         required: false
@@ -22,24 +22,40 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build-linux:
-    runs-on: ${{ matrix.os }}
+    runs-on: >-
+      ${{
+        matrix.variant == 'compute' && format('blaze/compute/{0}-amd64', matrix.os) ||
+        matrix.variant == 'normal' && format('blaze/{0}-amd64', matrix.os) ||
+        matrix.variant == 'github' && matrix.os
+      }}
     container:
-      image: dcvz/n64recomp:0.0.1-ubuntu-18.04
+      image: dcvz/n64recomp:ubuntu-18.04
+      volumes:
+        # create a volume that we'll use as the new source for the node binary
+        # https://github.com/actions/checkout/issues/1809
+        - /nodeoverride:/nodeoverride:rw,rshared
+        - /nodeoverride:/__e/node20:ro,rshared
     strategy:
       matrix:
-        type: [ Debug, Release ]
+        variant: [ compute, normal, github ]
+        type: [ Debug ]
         os: [ ubuntu-22.04 ]
-    name: ubuntu-18.04 (x64, ${{ matrix.type }})
+    name: ubuntu-18.04 (x64, ${{ matrix.type }}, ${{ matrix.variant }})
     steps:
+      - name: Copy the Node20 binary
+        run: |
+          cp -r /node20217/* /nodeoverride/
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           submodules: recursive
       - name: ccache
-        uses: hendrikmuhs/ccache-action@v1.2.11
+        uses: hendrikmuhs/ccache-action@v1.2
         with:
           key: ${{ matrix.os }}-z64re-ccache-${{ matrix.type }}-x64-${{ inputs.N64RECOMP_COMMIT }}
+      - name: Disable ccache
+        run: echo "CCACHE_DISABLE=1" >> $GITHUB_ENV
       - name: Prepare Build
         run: |-
           git clone ${{ secrets.ZRE_REPO_WITH_PAT }}
@@ -56,7 +72,7 @@ jobs:
           
           # Build N64Recomp & RSPRecomp
           cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER=g++-11 -DCMAKE_C_COMPILER=gcc-11 -DCMAKE_MAKE_PROGRAM=ninja -G Ninja -S . -B cmake-build
-          cmake --build cmake-build --config Release --target N64Recomp -j $(nproc)
+          cmake --build cmake-build --config Release --target N64RecompCLI -j $(nproc)
           cmake --build cmake-build --config Release --target RSPRecomp -j $(nproc)
           
           # Copy N64Recomp & RSPRecomp to root directory
@@ -100,12 +116,17 @@ jobs:
           name: Zelda64Recompiled-AppImage-X64-${{ matrix.type }}
           path: Zelda64Recompiled-*.AppImage
   build-linux-arm64:
-    runs-on: ${{ format('blaze/{0}', matrix.os) }}
+    runs-on: >-
+      ${{
+        matrix.variant == 'compute' && format('blaze/compute/{0}', matrix.os) ||
+        matrix.variant == 'normal' && format('blaze/{0}', matrix.os)
+      }}
     strategy:
       matrix:
-        type: [ Debug, Release ]
+        variant: [ compute, normal ]
+        type: [ Debug ]
         os: [ ubuntu-22.04 ]
-    name: ${{ matrix.os }} (arm64, ${{ matrix.type }})
+    name: ${{ matrix.os }} (arm64, ${{ matrix.type }}, ${{ matrix.variant }})
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -116,6 +137,8 @@ jobs:
         uses: hendrikmuhs/ccache-action@v1.2
         with:
           key: ${{ matrix.os }}-z64re-ccache-${{ matrix.type }}-arm64-${{ inputs.N64RECOMP_COMMIT }}
+      - name: Disable ccache
+        run: echo "CCACHE_DISABLE=1" >> $GITHUB_ENV
       - name: Install Linux Dependencies
         run: |
           sudo apt-get update
@@ -152,7 +175,7 @@ jobs:
           
           # Build N64Recomp & RSPRecomp
           cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER=g++-11 -DCMAKE_C_COMPILER=gcc-11 -DCMAKE_MAKE_PROGRAM=ninja -G Ninja -S . -B cmake-build
-          cmake --build cmake-build --config Release --target N64Recomp -j $(nproc)
+          cmake --build cmake-build --config Release --target N64RecompCLI -j $(nproc)
           cmake --build cmake-build --config Release --target RSPRecomp -j $(nproc)
           
           # Copy N64Recomp & RSPRecomp to root directory
@@ -202,7 +225,9 @@ jobs:
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2
         with:
-          key: ${{ runner.os }}-z64re-ccache-${{ matrix.type }}
+          key: ${{ runner.os }}-z64re-ccache-${{ matrix.type }}-xyza
+      - name: Disable ccache
+        run: echo "CCACHE_DISABLE=1" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Install Windows Dependencies
         run: |
           choco install ninja
@@ -226,7 +251,7 @@ jobs:
           $cpuCores = (Get-CimInstance -ClassName Win32_Processor).NumberOfLogicalProcessors
 
           cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_MAKE_PROGRAM=ninja -G Ninja -S . -B cmake-build
-          cmake --build cmake-build --config Release --target N64Recomp -j $cpuCores
+          cmake --build cmake-build --config Release --target N64RecompCLI -j $cpuCores
           cmake --build cmake-build --config Release --target RSPRecomp -j $cpuCores
 
           # Copy N64Recomp & RSPRecomp to root directory
